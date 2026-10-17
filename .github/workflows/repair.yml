@@ -1,0 +1,44 @@
+name: Manual repair
+on:
+  workflow_dispatch:
+    inputs:
+      task_id:
+        description: Approved repair task ID from .loop/tasks.json
+        required: true
+        type: string
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Codex CLI
+        run: npm install -g @openai/codex
+      - name: Configure commit identity
+        run: |
+          git config user.name "codex-loop-harness[bot]"
+          git config user.email "codex-loop-harness[bot]@users.noreply.github.com"
+      - name: Run approved repair
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TASK_ID: ${{ inputs.task_id }}
+        run: python3 scripts/loop.py run --mode repair --task "$TASK_ID"
+      - name: Push task branch and open PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TASK_ID: ${{ inputs.task_id }}
+        run: |
+          branch="$(python3 -c 'import json; print(json.load(open(".loop/state.json"))["last_verified_branch"])')"
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" --title "Repair: $TASK_ID" --body "Automated repair on an isolated branch. Verification passed locally in the workflow. Review before merge."

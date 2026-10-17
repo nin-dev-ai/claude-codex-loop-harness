@@ -1,0 +1,22 @@
+{
+  "generated_hashes": {
+    ".loop/TASKS.md": "d5967970b0386e43226a66246a19ddf7bcc84ed43cebbd87899f8d2cf10c5745",
+    "docs/ARCHITECTURE.md": "a9b1ab2f2fda12912128a4eac90f670c3a09ebcb7a9ef903e57a3c5c65f7f34d",
+    "docs/DESIGN.md": "e9260eb1f1587024bcbb56067522a2480e05b78853d39f187904dc6699acaab5",
+    "docs/PRD.md": "d867c4456c7b1ad268a0bbd3a8638769d395d2c6b8a06bd2c44552b7bb3e1769"
+  },
+  "sections": {
+    "Acceptance Criteria": "- Define objectively testable success conditions.",
+    "Architecture and Integrations": "Describe services, data flow, APIs, authentication, and dependencies.",
+    "Constraints and Non-Goals": "Describe scope boundaries and forbidden approaches.",
+    "Core Features": "- Feature one\n- Feature two",
+    "Design Direction": "Describe visual language, accessibility and UX principles.",
+    "Initial Milestones": "- Milestone one\n- Milestone two",
+    "Non-Functional Requirements": "- Security and privacy\n- Performance and reliability",
+    "One-Line Purpose": "Describe the product and its main user outcome.",
+    "Project Name": "My Project",
+    "Target Users": "Who uses this product and what problem do they face?",
+    "Tech Stack": "- Frontend: TBD\n- Backend: TBD\n- Database: TBD\n- Deployment: TBD",
+    "Verification Commands": "- Replace with exact build, lint, and test commands for this repository."
+  }
+}
