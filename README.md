@@ -1,3 +1,7 @@
+<img src="assets/readme-banner.svg" alt="claude codex loop harness project banner" width="100%" />
+
+[![Verify](https://github.com/nin-dev-ai/claude-codex-loop-harness/actions/workflows/verify.yml/badge.svg)](https://github.com/nin-dev-ai/claude-codex-loop-harness/actions/workflows/verify.yml)
+
 # Claude Code & Codex Loop Harness — verified AI coding agents in Git worktrees
 
 Claude Code & Codex Loop Harness is a local Python controller for **Claude Code CLI** and **OpenAI Codex CLI** tasks. Give it an approved task and project-specific checks; it runs the selected agent in an isolated Git worktree, verifies the result outside the agent session, and commits passing work to a reviewable task branch. It does not merge or deploy.
