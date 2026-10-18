@@ -1,6 +1,18 @@
-# Codex Loop Harness
+# Codex Loop Harness — verified coding tasks in isolated Git worktrees
 
-A small Python controller for approved Codex tasks. It follows **discover → plan → execute → verify → iterate → commit**. It creates a Git worktree per task, runs Codex there, verifies changes independently, and commits only passing results on a task branch. It never merges or deploys.
+Codex Loop Harness is a local Python controller for **Codex CLI** tasks. Give it an approved task and project-specific checks; it runs Codex in an isolated Git worktree, verifies the result outside the agent session, and commits passing work to a reviewable task branch. It does not merge or deploy.
+
+Use it when you want a repeatable **AI coding loop** with explicit approval, independent tests, bounded retries, and a clear audit trail instead of a one-shot prompt.
+
+## How the loop works
+
+`discover → plan → execute → verify → iterate → commit`
+
+- **Isolate work:** one task, one branch and worktree; failed attempts remain available for inspection.
+- **Check results independently:** your lint, type checks, tests, and acceptance commands decide whether work passes.
+- **Keep control:** only approved tasks run, repeated failures stop the loop, and a passing result still awaits your review.
+
+This repository is a **copy-into-your-project template**, not a hosted service or a Python package. It requires Python 3.9+, Git, and an installed Codex CLI.
 
 ## Start a project
 
@@ -42,3 +54,11 @@ GitHub Actions runs the same gate on pushes and pull requests. The **Manual repa
 ## Limits
 
 Bootstrap is deterministic scaffolding. It reports changed sections, generated-section conflicts, and unresolved placeholders. Detailed semantic conflicts and architectural decisions require human review with `BOOTSTRAP_PROMPT.md`. A passing command suite proves only the checks configured for that project.
+
+## Documentation and help
+
+- [Product requirements](docs/PRD.md), [architecture](docs/ARCHITECTURE.md), and [design notes](docs/DESIGN.md)
+- [Task and loop contract](.loop/LOOP.md) and [repository instructions](AGENTS.md)
+- [Open an issue](https://github.com/nin-dev-ai/codex-loop-harness/issues) for bugs or setup questions
+
+Maintained by [nin-dev-ai](https://github.com/nin-dev-ai). Licensed under [MIT](LICENSE).
