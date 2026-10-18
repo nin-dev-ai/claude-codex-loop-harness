@@ -2,7 +2,7 @@
 Discover → Plan → Execute → Verify → Iterate → Commit.
 
 - Approve detailed tasks in `.loop/tasks.json` before running. Markdown milestones are planning seeds.
-- The controller selects one eligible task for build, repair, or improve and invokes Codex in a task worktree.
+- The controller selects one eligible task for build, repair, or improve and invokes Codex or Claude Code in a task worktree.
 - The verifier runs independently of the coding agent.
 - A task is committed on its branch only after independent verification succeeds. Pull request review remains a separate human step.
 - Never modify protected requirements, tests, CI gates, credentials or deployment configuration just to pass.

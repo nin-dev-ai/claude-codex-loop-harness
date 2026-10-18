@@ -1,4 +1,4 @@
-# Codex Bootstrap Prompt
+# Claude Code and Codex Bootstrap Prompt
 Read `PROJECT_KNOWHOW.md` as the single user-authored source of product context. Inspect the existing repository before editing anything.
 
 Update the following dependent files consistently:

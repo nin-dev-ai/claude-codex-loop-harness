@@ -6,6 +6,14 @@ on:
         description: Approved repair task ID from .loop/tasks.json
         required: true
         type: string
+      agent:
+        description: Coding agent
+        required: true
+        default: codex
+        type: choice
+        options:
+          - codex
+          - claude
 permissions:
   contents: write
   pull-requests: write
@@ -24,16 +32,27 @@ jobs:
         with:
           node-version: '22'
       - name: Install Codex CLI
+        if: inputs.agent == 'codex'
         run: npm install -g @openai/codex
+      - name: Install Claude Code CLI
+        if: inputs.agent == 'claude'
+        run: npm install -g @anthropic-ai/claude-code
       - name: Configure commit identity
         run: |
-          git config user.name "codex-loop-harness[bot]"
-          git config user.email "codex-loop-harness[bot]@users.noreply.github.com"
-      - name: Run approved repair
+          git config user.name "claude-codex-loop-harness[bot]"
+          git config user.email "claude-codex-loop-harness[bot]@users.noreply.github.com"
+      - name: Run approved repair with Codex
+        if: inputs.agent == 'codex'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           TASK_ID: ${{ inputs.task_id }}
-        run: python3 scripts/loop.py run --mode repair --task "$TASK_ID"
+        run: python3 scripts/loop.py run --mode repair --task "$TASK_ID" --agent codex
+      - name: Run approved repair with Claude Code
+        if: inputs.agent == 'claude'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TASK_ID: ${{ inputs.task_id }}
+        run: python3 scripts/loop.py run --mode repair --task "$TASK_ID" --agent claude
       - name: Push task branch and open PR
         env:
           GH_TOKEN: ${{ github.token }}

@@ -33,6 +33,11 @@ class LoopTests(unittest.TestCase):
             loop.select_task(tasks, {'completed': []}, 'build', None)
 
     def test_disposable_repo_full_run(self):
+        for agent_name in ('codex', 'claude'):
+            with self.subTest(agent=agent_name):
+                self.run_disposable_repo(agent_name)
+
+    def run_disposable_repo(self, agent_name):
         with tempfile.TemporaryDirectory() as temp:
             repo = pathlib.Path(temp) / 'repo'
             scripts = repo / 'scripts'
@@ -56,9 +61,9 @@ class LoopTests(unittest.TestCase):
             (repo / '.loop/PROGRESS.md').write_text('# Progress\n')
             bin_dir = pathlib.Path(temp) / 'bin'
             bin_dir.mkdir()
-            fake = bin_dir / 'codex'
+            fake = bin_dir / agent_name
             fake.write_text('#!/usr/bin/env python3\nimport pathlib,sys\n'
-                            'path=pathlib.Path(sys.argv[sys.argv.index("-C")+1])\n'
+                            'path=pathlib.Path.cwd()\n'
                             '(path/"result.txt").write_text("done\\n")\n')
             fake.chmod(0o755)
             def git(*args):
@@ -70,11 +75,16 @@ class LoopTests(unittest.TestCase):
             git('commit', '-m', 'baseline')
             env = dict(os.environ, PATH=f'{bin_dir}:{os.environ["PATH"]}')
             run = subprocess.run([sys.executable, str(scripts / 'loop.py'), 'run',
-                                  '--mode', 'build', '--task', 'TASK-001'],
+                                  '--mode', 'build', '--task', 'TASK-001', '--agent', agent_name],
                                  cwd=repo, env=env, capture_output=True, text=True, timeout=40)
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             state = json.loads((repo / '.loop/state.json').read_text())
             self.assertEqual(state['completed'], ['TASK-001'])
             self.assertTrue(state['last_verified_commit'])
+            self.assertTrue(state['last_verified_branch'].startswith(agent_name + '/'))
             self.assertEqual(len(state['history']), 1)
-            self.assertTrue(pathlib.Path(state['history'][0]['record']).exists())
+            record = json.loads(pathlib.Path(state['history'][0]['record']).read_text())
+            self.assertEqual(record['agent_name'], agent_name)
+            self.assertEqual(record['agent']['argv'][0], agent_name)
+            if agent_name == 'claude':
+                self.assertEqual(record['agent']['argv'][1:4], ['-p', '--permission-mode', 'acceptEdits'])

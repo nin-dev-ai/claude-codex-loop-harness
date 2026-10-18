@@ -1,6 +1,6 @@
-# Codex Loop Harness — verified coding tasks in isolated Git worktrees
+# Claude Code & Codex Loop Harness — verified AI coding agents in Git worktrees
 
-Codex Loop Harness is a local Python controller for **Codex CLI** tasks. Give it an approved task and project-specific checks; it runs Codex in an isolated Git worktree, verifies the result outside the agent session, and commits passing work to a reviewable task branch. It does not merge or deploy.
+Claude Code & Codex Loop Harness is a local Python controller for **Claude Code CLI** and **OpenAI Codex CLI** tasks. Give it an approved task and project-specific checks; it runs the selected agent in an isolated Git worktree, verifies the result outside the agent session, and commits passing work to a reviewable task branch. It does not merge or deploy.
 
 Use it when you want a repeatable **AI coding loop** with explicit approval, independent tests, bounded retries, and a clear audit trail instead of a one-shot prompt.
 
@@ -12,19 +12,21 @@ Use it when you want a repeatable **AI coding loop** with explicit approval, ind
 - **Check results independently:** your lint, type checks, tests, and acceptance commands decide whether work passes.
 - **Keep control:** only approved tasks run, repeated failures stop the loop, and a passing result still awaits your review.
 
-This repository is a **copy-into-your-project template**, not a hosted service or a Python package. It requires Python 3.9+, Git, and an installed Codex CLI.
+This repository is a **copy-into-your-project template**, not a hosted service or a Python package. It requires Python 3.9+, Git, and an installed Codex CLI or Claude Code CLI.
 
 ## Start a project
 
-1. Copy this repository's harness files into a Git project. Use Python 3.9+ and install the Codex CLI.
+1. Copy this repository's harness files into a Git project. Use Python 3.9+ and install [Codex CLI](https://developers.openai.com/codex/cli/) or [Claude Code CLI](https://code.claude.com/docs/en/setup).
 2. Edit `PROJECT_KNOWHOW.md`. Keep secrets out of it.
 3. Run `python3 scripts/bootstrap.py` to preview affected documents and a unified diff. Review the proposal, then run `python3 scripts/bootstrap.py --apply`. Bootstrap updates only marked generated sections, records source and output hashes, rejects edits to those sections since the last sync, and appends to `.loop/CHANGELOG.md`.
-4. Review the PRD, architecture, design, and task seeds. Use `BOOTSTRAP_PROMPT.md` with Codex for deeper planning. Put **approved** executable tasks in `.loop/tasks.json`; the Markdown task seeds alone are not executable.
+4. Review the PRD, architecture, design, and task seeds. Use `BOOTSTRAP_PROMPT.md` with your chosen agent for deeper planning. Put **approved** executable tasks in `.loop/tasks.json`; the Markdown task seeds alone are not executable.
 5. Replace `.loop/config.json` verification commands with your real project checks. Commands are argv arrays; no shell interpretation occurs. Include lint, type checks, unit tests, and acceptance or regression commands relevant to the project. Python, Node.js, and TypeScript tools all work as commands. An empty or missing command list fails closed.
-6. Commit the project setup. Run `python3 scripts/loop.py doctor` and `bash scripts/verify.sh`.
-7. Run `python3 scripts/loop.py run --mode build`, `--mode repair`, or `--mode improve`. Use `--task TASK-001` to choose an eligible task. Use `--resume` for an interrupted run.
+6. Commit the project setup. Run `python3 scripts/loop.py doctor --agent codex` or `python3 scripts/loop.py doctor --agent claude`, then `bash scripts/verify.sh`.
+7. Run `python3 scripts/loop.py run --agent codex --mode build` or `python3 scripts/loop.py run --agent claude --mode build`. Modes are `build`, `repair`, and `improve`. Codex is the default if `--agent` is omitted. Use `--task TASK-001` to choose an eligible task. Use `--resume` for an interrupted run; it remembers the selected agent.
 
 The included configuration verifies **this harness** with its Python tests. Replace it when copying the harness into another project.
+
+`AGENTS.md` contains repository instructions for Codex; `CLAUDE.md` mirrors them for Claude Code. Keep both files aligned when adapting the template. Claude Code runs in print mode with automatic file edits; its shell commands still follow Claude's permission rules. The controller performs verification separately either way.
 
 ## Task format
 
@@ -49,7 +51,7 @@ Task modes are `build`, `repair`, and `improve`. Dependencies must be completed 
 
 The verifier checks bootstrap consistency, task/config/state schemas, and every configured project command. Existing test files and protected requirements cannot be changed by an automated task. New tests may be added. Review code and results before creating a pull request.
 
-GitHub Actions runs the same gate on pushes and pull requests. The **Manual repair** workflow accepts an approved repair task ID, runs the controller, pushes its verified branch, and opens a pull request. Configure `OPENAI_API_KEY` as a repository secret before using it. Repository Actions settings must permit pull request creation by `GITHUB_TOKEN`. It does not merge.
+GitHub Actions runs the same gate on pushes and pull requests. The **Manual repair** workflow accepts an approved repair task ID and agent choice, runs the controller, pushes its verified branch, and opens a pull request. Configure `OPENAI_API_KEY` for Codex runs or `ANTHROPIC_API_KEY` for Claude Code runs as a repository secret. Repository Actions settings must permit pull request creation by `GITHUB_TOKEN`. It does not merge.
 
 ## Limits
 
@@ -58,7 +60,7 @@ Bootstrap is deterministic scaffolding. It reports changed sections, generated-s
 ## Documentation and help
 
 - [Product requirements](docs/PRD.md), [architecture](docs/ARCHITECTURE.md), and [design notes](docs/DESIGN.md)
-- [Task and loop contract](.loop/LOOP.md) and [repository instructions](AGENTS.md)
-- [Open an issue](https://github.com/nin-dev-ai/codex-loop-harness/issues) for bugs or setup questions
+- [Task and loop contract](.loop/LOOP.md), [Codex instructions](AGENTS.md), and [Claude Code instructions](CLAUDE.md)
+- [Open an issue](https://github.com/nin-dev-ai/claude-codex-loop-harness/issues) for bugs or setup questions
 
 Maintained by [nin-dev-ai](https://github.com/nin-dev-ai). Licensed under [MIT](LICENSE).

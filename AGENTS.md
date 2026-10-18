@@ -1,4 +1,4 @@
-# Codex Repository Instructions
+# Repository Agent Instructions
 1. Read `PROJECT_KNOWHOW.md`, `.loop/LOOP.md`, and `.loop/TASKS.md` before implementing.
 2. Read `docs/PRD.md`, `docs/ARCHITECTURE.md`, and `docs/DESIGN.md` when relevant.
 3. Only work on the requested task. Do not change protected requirements or verification criteria to force success.

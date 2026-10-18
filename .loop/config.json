@@ -5,5 +5,5 @@
   "total_budget_seconds": 3600,
   "max_output_bytes": 1048576,
   "verify_commands": [["python3", "-m", "unittest", "discover", "-s", "tests", "-v"]],
-  "protected_paths": ["PROJECT_KNOWHOW.md", "AGENTS.md", "BOOTSTRAP_PROMPT.md", ".loop/LOOP.md", ".loop/TASKS.md", ".loop/tasks.json", ".loop/config.json", ".loop/bootstrap_state.json", "docs/PRD.md", "docs/ARCHITECTURE.md", "docs/DESIGN.md", "scripts/verify.sh", ".github/workflows/verify.yml"]
+  "protected_paths": ["PROJECT_KNOWHOW.md", "AGENTS.md", "CLAUDE.md", "BOOTSTRAP_PROMPT.md", ".loop/LOOP.md", ".loop/TASKS.md", ".loop/tasks.json", ".loop/config.json", ".loop/bootstrap_state.json", "docs/PRD.md", "docs/ARCHITECTURE.md", "docs/DESIGN.md", "scripts/verify.sh", ".github/workflows/verify.yml"]
 }

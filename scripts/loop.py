@@ -18,6 +18,7 @@ TASKS = ROOT / '.loop/tasks.json'
 STATE = ROOT / '.loop/state.json'
 RUNS = ROOT / '.loop/runs'
 MODES = {'build', 'repair', 'improve'}
+AGENTS = {'codex', 'claude'}
 
 def now():
     return dt.datetime.now(dt.timezone.utc).isoformat()
@@ -133,21 +134,21 @@ def append_progress(task, outcome):
     with (ROOT / '.loop/PROGRESS.md').open('a') as file:
         file.write(f'\n- {now()} {task["id"]} ({task["mode"]}): {outcome}\n')
 
-def execute(task, cfg, state, resume=False):
+def execute(task, cfg, state, agent_name='codex', resume=False):
     if state.get('active') and not resume:
         raise ValueError('An interrupted run exists; use --resume')
     if resume:
         active = state.get('active')
-        if not active or active['task'] != task['id']:
+        if not active or active['task'] != task['id'] or active.get('agent_name', 'codex') != agent_name:
             raise ValueError('No matching run to resume')
         worktree = Path(active['worktree'])
         if not worktree.is_dir():
             raise ValueError('Saved worktree is missing')
     else:
-        branch = f'codex/{task["mode"]}-{task["id"].lower()}-{int(time.time())}'
+        branch = f'{agent_name}/{task["mode"]}-{task["id"].lower()}-{int(time.time())}'
         worktree = RUNS / branch.replace('/', '-')
         git('worktree', 'add', '-b', branch, str(worktree), 'HEAD')
-        active = {'task': task['id'], 'mode': task['mode'], 'branch': branch,
+        active = {'task': task['id'], 'mode': task['mode'], 'agent_name': agent_name, 'branch': branch,
                   'worktree': str(worktree), 'attempt': 0, 'started': now(),
                   'started_epoch': time.time(), 'previous_failure': None}
         state['active'] = active
@@ -161,13 +162,17 @@ def execute(task, cfg, state, resume=False):
         attempt = active['attempt']
         save_json(STATE, state)
         prefix = RUNS / f'{task["id"]}-attempt-{attempt}'
+        instructions = 'AGENTS.md' if agent_name == 'codex' else 'CLAUDE.md and AGENTS.md'
         prompt = (f'Implement only approved {task["mode"]} task {task["id"]}: {task["title"]}.\n'
                   f'Acceptance: {json.dumps(task["acceptance"])}\n'
-                  f'Read AGENTS.md, PROJECT_KNOWHOW.md, .loop/LOOP.md, .loop/TASKS.md and relevant docs. '
+                  f'Read {instructions}, PROJECT_KNOWHOW.md, .loop/LOOP.md, .loop/TASKS.md and relevant docs. '
                   f'Do not edit protected paths: {json.dumps(cfg["protected_paths"])}. '
                   'Do not weaken tests, CI, or requirements. Do not merge or deploy. '
                   f'Previous verification feedback:\n{feedback[-6000:]}')
-        agent = run_logged(['codex', 'exec', '-s', 'workspace-write', '-C', str(worktree), prompt],
+        agent_argv = (['codex', 'exec', '-s', 'workspace-write', '-C', str(worktree), prompt]
+                      if agent_name == 'codex' else
+                      ['claude', '-p', '--permission-mode', 'acceptEdits', prompt])
+        agent = run_logged(agent_argv,
                            worktree, min(cfg['timeout_seconds'], max(1, int(remaining))),
                            prefix.with_name(prefix.name + '-agent'), cfg['max_output_bytes'])
         paths = changed_paths(worktree)
@@ -204,7 +209,7 @@ def execute(task, cfg, state, resume=False):
                 verification['exit_code'] = 1
                 feedback += '\nBenchmark failed or did not improve against baseline.'
         passed = agent['exit_code'] == 0 and verification['exit_code'] == 0 and bool(paths)
-        record = {'task': task['id'], 'attempt': attempt, 'timestamp': now(), 'agent': agent,
+        record = {'task': task['id'], 'attempt': attempt, 'timestamp': now(), 'agent_name': agent_name, 'agent': agent,
                   'verification': verification, 'benchmark': benchmark_result,
                   'changed_paths': paths, 'passed': passed}
         save_json(prefix.with_suffix('.json'), record)
@@ -235,6 +240,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command', choices=['doctor', 'run', 'validate'])
     parser.add_argument('--mode', choices=sorted(MODES), default='build')
+    parser.add_argument('--agent', choices=sorted(AGENTS), help='Coding agent (default: codex)')
     parser.add_argument('--task')
     parser.add_argument('--resume', action='store_true')
     args = parser.parse_args(argv)
@@ -247,17 +253,19 @@ def main(argv=None):
         if args.command == 'validate':
             print('Configuration, task, and state schemas valid')
             return 0
-        for executable in ('git', 'codex'):
+        active_agent = (state.get('active') or {}).get('agent_name', 'codex')
+        agent_name = args.agent or (active_agent if args.resume else 'codex')
+        for executable in ('git', agent_name):
             if not shutil.which(executable):
                 raise ValueError(f'Missing executable: {executable}')
         if args.command == 'doctor':
-            print('Executables and schemas present. Configure project checks and Codex authentication before running.')
+            print(f'Executables and schemas present. Configure project checks and {agent_name} authentication before running.')
             return 0
         root_changes = [line[3:] for line in git('status', '--porcelain').stdout.splitlines()]
         if any(path not in {'.loop/state.json', '.loop/PROGRESS.md'} for path in root_changes):
             raise ValueError('Commit or stash local changes before running')
         task = select_task(tasks, state, args.mode, args.task)
-        return execute(task, cfg, state, args.resume)
+        return execute(task, cfg, state, agent_name, args.resume)
     except (ValueError, OSError, json.JSONDecodeError, subprocess.CalledProcessError) as exc:
         print(f'Loop error: {exc}', file=sys.stderr)
         return 2
