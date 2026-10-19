@@ -110,11 +110,12 @@ def run_logged(argv, cwd, timeout, prefix, max_output_bytes):
             os.killpg(proc.pid, signal.SIGKILL)
             proc.wait()
         code = 125 if exceeded else (124 if time.monotonic() - started >= timeout else proc.returncode)
+    # A short-lived child can finish between polls; enforce the same combined
+    # stdout/stderr budget after it exits, including output flushed at shutdown.
+    exceeded = exceeded or out_path.stat().st_size + err_path.stat().st_size > max_output_bytes
     outputs = []
     for suffix in ('.stdout', '.stderr'):
         path = prefix.with_suffix(suffix)
-        if path.stat().st_size > max_output_bytes:
-            exceeded = True
         outputs.append(path.read_bytes()[-max_output_bytes:].decode(errors='replace'))
     return {'argv': argv, 'exit_code': 125 if exceeded else code, 'stdout': outputs[0],
             'stderr': outputs[1], 'elapsed_seconds': round(time.monotonic() - started, 2),
