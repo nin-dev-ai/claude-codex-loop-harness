@@ -63,6 +63,8 @@ Bootstrap is deterministic scaffolding. It reports changed sections, generated-s
 
 ## Documentation and help
 
+- [Evidence-first engineering workflow](docs/ENGINEERING_WORKFLOW.md): plan snapshots, per-attempt evidence reports, and resumable repair feedback
+
 - [Product requirements](docs/PRD.md), [architecture](docs/ARCHITECTURE.md), and [design notes](docs/DESIGN.md)
 - [Task and loop contract](.loop/LOOP.md), [Codex instructions](AGENTS.md), and [Claude Code instructions](CLAUDE.md)
 - [Open an issue](https://github.com/nin-dev-ai/claude-codex-loop-harness/issues) for bugs or setup questions

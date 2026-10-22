@@ -135,6 +135,55 @@ def append_progress(task, outcome):
     with (ROOT / '.loop/PROGRESS.md').open('a') as file:
         file.write(f'\n- {now()} {task["id"]} ({task["mode"]}): {outcome}\n')
 
+def write_plan(task, cfg, active):
+    """Keep the approved inputs outside the agent worktree for later reconciliation."""
+    path = RUNS / f'{active["branch"].replace("/", "-")}-plan.json'
+    if not path.exists():
+        save_json(path, {'task': task, 'branch': active['branch'],
+                         'worktree': active['worktree'], 'started': active['started'],
+                         'verification_commands': cfg['verify_commands'],
+                         'protected_paths': cfg['protected_paths'],
+                         'max_attempts': cfg['max_attempts'],
+                         'total_budget_seconds': cfg['total_budget_seconds']})
+    return path
+
+
+def repair_feedback(agent, verification, paths, benchmark):
+    parts = [verification['stdout'], verification['stderr']]
+    if agent['exit_code']:
+        parts.append(f"Agent failed (exit {agent['exit_code']}): " +
+                     agent['stdout'] + '\n' + agent['stderr'])
+    if not paths:
+        parts.append('No changed files: the task cannot be committed as completed.')
+    if benchmark is not None and 'measured' not in benchmark:
+        parts.append('Benchmark failed or did not improve against baseline.')
+    return '\n'.join(parts)
+
+
+def write_checks(prefix, task, record, violations):
+    """Report observed gates, not fabricated coverage of free-text requirements."""
+    def verdict(passed):
+        return 'pass' if passed else 'fail'
+    evidence = prefix.with_suffix('.json').name
+    lines = [f'# {task["id"]}: attempt {record["attempt"]}', '',
+             f'Evidence: [{evidence}]({evidence})', '',
+             '## Observed gates',
+             f'- Agent process: {verdict(record["agent"]["exit_code"] == 0)} (agent.exit_code).',
+             f'- Independent verification: {verdict(record["verification"]["exit_code"] == 0)} (verification.exit_code).',
+             f'- Protected paths: {verdict(not violations)} (protected_path_violations).',
+             f'- Changed files: {verdict(bool(record["changed_paths"]))} (changed_paths).',
+             '', '## Acceptance review',
+             'Aggregate verification does not establish individual requirement coverage.']
+    for requirement in task['acceptance']:
+        lines.append('- unresolved: ' + ' '.join(requirement.splitlines()) +
+                     ' | Reconcile this requirement with the saved verification evidence before review approval.')
+    lines += ['', '## Next action',
+              ('Configured gates passed; inspect the resulting commit and requirement coverage. No merge is authorized.'
+               if record['passed'] else
+               'Blocked on failed gates; inspect the JSON evidence and repair only the approved task within the remaining budget.'), '']
+    prefix.with_name(prefix.name + '-checks.md').write_text('\n'.join(lines))
+
+
 def execute(task, cfg, state, agent_name='codex', resume=False):
     if state.get('active') and not resume:
         raise ValueError('An interrupted run exists; use --resume')
@@ -154,7 +203,15 @@ def execute(task, cfg, state, agent_name='codex', resume=False):
                   'started_epoch': time.time(), 'previous_failure': None}
         state['active'] = active
         save_json(STATE, state)
+    plan_path = write_plan(task, cfg, active)
     feedback = ''
+    # Restore evidence, not a guessed recollection, when resuming an interrupted run.
+    if resume and active['attempt']:
+        prior = RUNS / f'{task["id"]}-attempt-{active["attempt"]}.json'
+        if prior.is_file():
+            previous = load_json(prior)
+            feedback = repair_feedback(previous['agent'], previous['verification'],
+                                       previous['changed_paths'], previous.get('benchmark'))
     while active['attempt'] < cfg['max_attempts']:
         remaining = cfg['total_budget_seconds'] - (time.time() - active['started_epoch'])
         if remaining <= 0:
@@ -169,6 +226,7 @@ def execute(task, cfg, state, agent_name='codex', resume=False):
                   f'Read {instructions}, PROJECT_KNOWHOW.md, .loop/LOOP.md, .loop/TASKS.md and relevant docs. '
                   f'Do not edit protected paths: {json.dumps(cfg["protected_paths"])}. '
                   'Do not weaken tests, CI, or requirements. Do not merge or deploy. '
+                  'Repair only the failed checks within this task; do not expand scope. '
                   f'Previous verification feedback:\n{feedback[-6000:]}')
         agent_argv = (['codex', 'exec', '-s', 'workspace-write', '-C', str(worktree), prompt]
                       if agent_name == 'codex' else
@@ -209,11 +267,14 @@ def execute(task, cfg, state, agent_name='codex', resume=False):
             except ValueError:
                 verification['exit_code'] = 1
                 feedback += '\nBenchmark failed or did not improve against baseline.'
+        feedback = repair_feedback(agent, verification, paths, benchmark_result)
         passed = agent['exit_code'] == 0 and verification['exit_code'] == 0 and bool(paths)
         record = {'task': task['id'], 'attempt': attempt, 'timestamp': now(), 'agent_name': agent_name, 'agent': agent,
                   'verification': verification, 'benchmark': benchmark_result,
-                  'changed_paths': paths, 'passed': passed}
+                  'changed_paths': paths, 'protected_path_violations': violations,
+                  'plan': str(plan_path), 'acceptance': task['acceptance'], 'passed': passed}
         save_json(prefix.with_suffix('.json'), record)
+        write_checks(prefix, task, record, violations)
         state.setdefault('history', []).append({'task': task['id'], 'attempt': attempt,
                                                  'passed': passed, 'record': str(prefix.with_suffix('.json'))})
         if passed:

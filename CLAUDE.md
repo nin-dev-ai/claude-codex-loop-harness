@@ -4,6 +4,8 @@
 - At the start of a new session, read [HANDOFF.md](HANDOFF.md) and verify its status against the repository before resuming.
 - Keep this file lean: put long or rarely used guidance in linked documents while preserving its content. The name prefix is a consistency cue, not a reliable test of context retention.
 
+For planning, evidence reports, and bounded repairs, see [the engineering workflow](docs/ENGINEERING_WORKFLOW.md).
+
 # Repository Agent Instructions
 1. Read `PROJECT_KNOWHOW.md`, `.loop/LOOP.md`, and `.loop/TASKS.md` before implementing.
 2. Read `docs/PRD.md`, `docs/ARCHITECTURE.md`, and `docs/DESIGN.md` when relevant.
