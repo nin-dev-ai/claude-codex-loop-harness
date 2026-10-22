@@ -30,7 +30,7 @@ This repository is a **copy-into-your-project template**, not a hosted service o
 
 The included configuration verifies **this harness** with its Python tests. Replace it when copying the harness into another project.
 
-`AGENTS.md` contains repository instructions for Codex; `CLAUDE.md` mirrors them for Claude Code. Keep both files aligned when adapting the template. Claude Code runs in print mode with automatic file edits; its shell commands still follow Claude's permission rules. The controller performs verification separately either way.
+`AGENTS.md` contains repository instructions for Codex; `CLAUDE.md` preserves those core instructions for Claude Code and adds a reply-prefix canary and [session handoff](HANDOFF.md). Keep the core instructions aligned when adapting the template; customize the canary name for the project owner. Claude Code runs in print mode with automatic file edits; its shell commands still follow Claude's permission rules. The controller performs verification separately either way.
 
 ## Task format
 
